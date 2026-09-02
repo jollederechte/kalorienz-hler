@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Teller — Kalorienscanner</title>
+<title>Teller — Kalorienzähler</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <style>
   :root{
     --ink:#2b2620;
@@ -14,6 +15,7 @@
     --accent-soft:#f4e3d3;
     --muted:#8a8070;
     --good:#5c7a4f;
+    --bad:#a83a3a;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -22,217 +24,72 @@
     color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     -webkit-tap-highlight-color:transparent;
-    padding-bottom:96px;
+    padding-bottom:100px;
   }
-  header{
-    padding:20px 20px 16px;
-    border-bottom:1px solid var(--line);
-  }
-  header h1{
-    font-family:Georgia,"Times New Roman",serif;
-    font-size:26px;
-    font-weight:400;
-    margin:0 0 2px;
-    letter-spacing:-0.01em;
-  }
-  header p{
-    margin:0;
-    font-size:13px;
-    color:var(--muted);
-  }
-  .summary{
-    display:flex;
-    gap:10px;
-    padding:16px 20px;
-  }
-  .stat{
-    flex:1;
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:14px 14px;
-  }
-  .stat .label{
-    font-size:12px;
-    color:var(--muted);
-    margin:0 0 4px;
-  }
-  .stat .value{
-    font-family:Georgia,serif;
-    font-size:22px;
-    margin:0;
-  }
-  .stat.goal input{
-    font-family:Georgia,serif;
-    font-size:22px;
-    border:none;
-    background:transparent;
-    width:100%;
-    padding:0;
-    color:var(--ink);
-  }
-  .bar-wrap{
-    margin:0 20px 20px;
-    height:6px;
-    background:var(--accent-soft);
-    border-radius:3px;
-    overflow:hidden;
-  }
-  .bar{
-    height:100%;
-    width:0%;
-    background:var(--accent);
-    transition:width .3s ease;
-  }
-  .section-title{
-    padding:0 20px;
-    font-size:13px;
-    color:var(--muted);
-    margin:8px 0;
-  }
-  .log{
-    padding:0 20px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-  .entry{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:12px 14px;
-    display:flex;
-    gap:12px;
-    align-items:center;
-  }
-  .entry img{
-    width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0;
-    background:var(--accent-soft);
-  }
+  header{padding:20px 20px 16px; border-bottom:1px solid var(--line);}
+  header h1{font-family:Georgia,"Times New Roman",serif; font-size:26px; font-weight:400; margin:0 0 2px; letter-spacing:-0.01em;}
+  header p{margin:0; font-size:13px; color:var(--muted);}
+
+  .summary{display:flex; gap:10px; padding:16px 20px;}
+  .stat{flex:1; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px;}
+  .stat .label{font-size:12px; color:var(--muted); margin:0 0 4px;}
+  .stat .value{font-family:Georgia,serif; font-size:22px; margin:0;}
+  .stat.goal input{font-family:Georgia,serif; font-size:22px; border:none; background:transparent; width:100%; padding:0; color:var(--ink);}
+
+  .bar-wrap{margin:0 20px 20px; height:6px; background:var(--accent-soft); border-radius:3px; overflow:hidden;}
+  .bar{height:100%; width:0%; background:var(--accent); transition:width .3s ease;}
+
+  .day-nav{display:flex; align-items:center; justify-content:space-between; padding:0 20px; margin-bottom:8px;}
+  .day-nav .day-label{font-size:13px; color:var(--muted);}
+  .day-nav button{border:none; background:transparent; color:var(--ink); font-size:16px; padding:4px 8px;}
+
+  .log{padding:0 20px; display:flex; flex-direction:column; gap:8px;}
+  .entry{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:flex; gap:12px; align-items:center;}
   .entry .info{flex:1; min-width:0;}
   .entry .name{font-size:15px; margin:0 0 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .entry .meta{font-size:12px; color:var(--muted); margin:0;}
-  .entry .kcal{
-    font-family:Georgia,serif;
-    font-size:17px;
-    white-space:nowrap;
-  }
-  .entry button{
-    border:none;
-    background:transparent;
-    color:var(--muted);
-    font-size:18px;
-    line-height:1;
-    padding:4px 6px;
-  }
-  .empty{
-    padding:40px 20px;
-    text-align:center;
-    color:var(--muted);
-    font-size:14px;
-  }
-  .dock{
-    position:fixed;
-    bottom:0; left:0; right:0;
-    padding:14px 20px calc(14px + env(safe-area-inset-bottom));
-    background:linear-gradient(to top, var(--paper) 60%, transparent);
-  }
-  .scan-btn{
-    width:100%;
-    border:none;
-    background:var(--accent);
-    color:#fff;
-    font-size:16px;
-    font-weight:500;
-    padding:15px;
-    border-radius:14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-  }
-  .scan-btn:active{opacity:.85;}
-  .scan-btn:disabled{opacity:.6;}
-  #fileInput{display:none;}
+  .entry .kcal{font-family:Georgia,serif; font-size:17px; white-space:nowrap;}
+  .entry button.remove{border:none; background:transparent; color:var(--muted); font-size:18px; line-height:1; padding:4px 6px;}
+  .empty{padding:40px 20px; text-align:center; color:var(--muted); font-size:14px;}
 
-  /* modal */
-  .overlay{
-    position:fixed; inset:0;
-    background:rgba(20,16,10,0.55);
-    display:none;
-    align-items:flex-end;
-    justify-content:center;
-    z-index:10;
-  }
+  .dock{position:fixed; bottom:0; left:0; right:0; padding:14px 20px calc(14px + env(safe-area-inset-bottom)); background:linear-gradient(to top, var(--paper) 60%, transparent); display:flex; gap:10px;}
+  .dock button{flex:1; border:none; font-size:15px; font-weight:500; padding:15px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .scan-btn{background:var(--accent); color:#fff;}
+  .search-btn{background:var(--card); border:1px solid var(--line); color:var(--ink);}
+  .dock button:active{opacity:.85;}
+
+  .overlay{position:fixed; inset:0; background:rgba(20,16,10,0.55); display:none; align-items:flex-end; justify-content:center; z-index:20;}
   .overlay.open{display:flex;}
-  .sheet{
-    background:var(--paper);
-    width:100%;
-    max-width:480px;
-    border-radius:20px 20px 0 0;
-    padding:20px 20px calc(20px + env(safe-area-inset-bottom));
-    max-height:85vh;
-    overflow-y:auto;
-  }
-  .sheet h2{
-    font-family:Georgia,serif;
-    font-weight:400;
-    font-size:20px;
-    margin:0 0 14px;
-  }
-  .preview-img{
-    width:100%;
-    height:180px;
-    object-fit:cover;
-    border-radius:14px;
-    margin-bottom:14px;
-    background:var(--accent-soft);
-  }
-  .status-row{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    color:var(--muted);
-    font-size:14px;
-    padding:8px 0 16px;
-  }
-  .spinner{
-    width:16px;height:16px;
-    border:2px solid var(--accent-soft);
-    border-top-color:var(--accent);
-    border-radius:50%;
-    animation:spin .7s linear infinite;
-  }
+  .sheet{background:var(--paper); width:100%; max-width:480px; border-radius:20px 20px 0 0; padding:20px 20px calc(20px + env(safe-area-inset-bottom)); max-height:88vh; overflow-y:auto;}
+  .sheet h2{font-family:Georgia,serif; font-weight:400; font-size:20px; margin:0 0 14px; display:flex; justify-content:space-between; align-items:center;}
+  .sheet h2 button{border:none; background:transparent; color:var(--muted); font-size:20px; padding:0 4px;}
+
+  #reader{border-radius:14px; overflow:hidden; margin-bottom:14px; background:#000;}
+  .scan-status{font-size:13px; color:var(--muted); text-align:center; margin:0 0 14px;}
+
+  .search-row{display:flex; gap:8px; margin-bottom:12px;}
+  .search-row input{flex:1;}
+  .search-row button{border:none; background:var(--accent); color:#fff; border-radius:10px; padding:0 16px; font-size:14px;}
+  .search-results{display:flex; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto; margin-bottom:4px;}
+  .result-item{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; display:flex; gap:10px; align-items:center; text-align:left;}
+  .result-item img{width:40px; height:40px; border-radius:8px; object-fit:cover; background:var(--accent-soft); flex-shrink:0;}
+  .result-item .r-name{font-size:14px; margin:0 0 2px;}
+  .result-item .r-kcal{font-size:12px; color:var(--muted); margin:0;}
+  .result-item{width:100%; font-family:inherit;}
+  .no-results{font-size:13px; color:var(--muted); padding:8px 0;}
+
+  .status-row{display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px; padding:8px 0 16px;}
+  .spinner{width:16px; height:16px; border:2px solid var(--accent-soft); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
+
   .field{margin-bottom:12px;}
   .field label{font-size:12px; color:var(--muted); display:block; margin-bottom:4px;}
-  .field input, .field textarea{
-    width:100%;
-    border:1px solid var(--line);
-    background:var(--card);
-    border-radius:10px;
-    padding:10px 12px;
-    font-size:15px;
-    color:var(--ink);
-    font-family:inherit;
-  }
-  .field textarea{resize:none; height:44px;}
+  .field input{width:100%; border:1px solid var(--line); background:var(--card); border-radius:10px; padding:10px 12px; font-size:15px; color:var(--ink); font-family:inherit;}
   .macro-row{display:flex; gap:8px;}
   .macro-row .field{flex:1;}
-  .error-text{
-    font-size:13px; color:#a83a3a; margin:0 0 10px; display:none;
-  }
-  .sheet-actions{
-    display:flex; gap:10px; margin-top:6px;
-  }
-  .btn-secondary, .btn-primary{
-    flex:1;
-    border:none;
-    border-radius:12px;
-    padding:13px;
-    font-size:15px;
-    font-weight:500;
-  }
+  .error-text{font-size:13px; color:var(--bad); margin:0 0 10px; display:none;}
+  .sheet-actions{display:flex; gap:10px; margin-top:6px;}
+  .btn-secondary, .btn-primary{flex:1; border:none; border-radius:12px; padding:13px; font-size:15px; font-weight:500;}
   .btn-secondary{background:var(--card); border:1px solid var(--line); color:var(--ink);}
   .btn-primary{background:var(--accent); color:#fff;}
   .btn-primary:disabled{opacity:.6;}
@@ -242,183 +99,123 @@
 
 <header>
   <h1>Teller</h1>
-  <p>Foto machen, Kalorien werden geschätzt.</p>
+  <p>Barcode scannen oder suchen — Kalorien automatisch aus Open Food Facts.</p>
 </header>
 
 <div class="summary">
-  <div class="stat">
-    <p class="label">Gegessen</p>
-    <p class="value" id="eatenVal">0</p>
-  </div>
-  <div class="stat goal">
-    <p class="label">Ziel</p>
-    <input type="number" id="goalInput" value="2000" step="50" inputmode="numeric">
-  </div>
-  <div class="stat">
-    <p class="label">Übrig</p>
-    <p class="value" id="leftVal">2000</p>
-  </div>
+  <div class="stat"><p class="label">Gegessen</p><p class="value" id="eatenVal">0</p></div>
+  <div class="stat goal"><p class="label">Ziel</p><input type="number" id="goalInput" step="50" inputmode="numeric"></div>
+  <div class="stat"><p class="label">Übrig</p><p class="value" id="leftVal">0</p></div>
 </div>
 <div class="bar-wrap"><div class="bar" id="bar"></div></div>
 
-<p class="section-title" id="logTitle">Heute</p>
+<div class="day-nav">
+  <button id="prevDay">‹ Vorheriger Tag</button>
+  <span class="day-label" id="dayLabel">Heute</span>
+  <button id="nextDay">Nächster Tag ›</button>
+</div>
+
 <div class="log" id="log"></div>
-<div class="empty" id="emptyState">Noch nichts gegessen heute. Mach ein Foto, um loszulegen.</div>
+<div class="empty" id="emptyState">Noch nichts eingetragen. Scanne einen Barcode oder suche ein Lebensmittel.</div>
 
 <div class="dock">
-  <button class="scan-btn" id="scanBtn">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3"/></svg>
-    Essen fotografieren
+  <button class="search-btn" id="searchOpenBtn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    Suchen
+  </button>
+  <button class="scan-btn" id="scanOpenBtn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M3 17v2a2 2 0 0 0 2 2h2M21 7V5a2 2 0 0 0-2-2h-2M21 17v2a2 2 0 0 1-2 2h-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+    Barcode scannen
   </button>
 </div>
 
-<input type="file" id="fileInput" accept="image/*" capture="environment">
-
-<div class="overlay" id="overlay">
+<div class="overlay" id="scanOverlay">
   <div class="sheet">
-    <h2>Mahlzeit prüfen</h2>
-    <img class="preview-img" id="previewImg" alt="Foto des Essens">
-    <div class="status-row" id="statusRow" style="display:none;">
-      <div class="spinner"></div>
-      <span>Claude schätzt die Kalorien…</span>
+    <h2>Barcode scannen<button id="closeScan">✕</button></h2>
+    <div id="reader"></div>
+    <p class="scan-status" id="scanStatus">Kamera wird gestartet…</p>
+  </div>
+</div>
+
+<div class="overlay" id="searchOverlay">
+  <div class="sheet">
+    <h2>Lebensmittel suchen<button id="closeSearch">✕</button></h2>
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="z. B. Naturjoghurt" inputmode="search">
+      <button id="doSearch">Los</button>
     </div>
-    <p class="error-text" id="formError">Bitte Name und Kalorien angeben.</p>
-    <div class="field">
-      <label for="fName">Gericht</label>
-      <input type="text" id="fName" placeholder="z. B. Hähnchen-Bowl">
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<div class="overlay" id="detailOverlay">
+  <div class="sheet">
+    <h2>Portion eintragen<button id="closeDetail">✕</button></h2>
+    <div class="status-row" id="detailLoading" style="display:none;">
+      <div class="spinner"></div><span>Produkt wird geladen…</span>
     </div>
+    <div class="field"><label for="dName">Produkt</label><input type="text" id="dName"></div>
     <div class="macro-row">
-      <div class="field">
-        <label for="fKcal">Kalorien</label>
-        <input type="number" id="fKcal" inputmode="numeric">
-      </div>
-      <div class="field">
-        <label for="fPortion">Portion</label>
-        <input type="text" id="fPortion" placeholder="z. B. 1 Teller">
-      </div>
+      <div class="field"><label for="dKcalPer100">kcal / 100g</label><input type="number" id="dKcalPer100" inputmode="numeric"></div>
+      <div class="field"><label for="dGrams">Menge (g)</label><input type="number" id="dGrams" inputmode="numeric" value="100"></div>
     </div>
-    <div class="field">
-      <label for="fNote">Anmerkung von Claude</label>
-      <textarea id="fNote" readonly></textarea>
-    </div>
+    <div class="field"><label>Berechnete Kalorien</label><input type="text" id="dKcalResult" readonly></div>
+    <p class="error-text" id="detailError">Bitte gültige Werte eingeben.</p>
     <div class="sheet-actions">
-      <button class="btn-secondary" id="cancelBtn">Verwerfen</button>
-      <button class="btn-primary" id="saveBtn">Eintragen</button>
+      <button class="btn-secondary" id="detailCancel">Verwerfen</button>
+      <button class="btn-primary" id="detailSave">Eintragen</button>
     </div>
   </div>
 </div>
 
 <script>
-let entries = [];
-let currentImageData = null;
+const STORAGE_KEY = 'teller_kalorien_v1';
+const GOAL_KEY = 'teller_ziel_v1';
+let store = loadStore();
+let currentDate = todayStr();
+let html5QrCode = null;
 
-const fileInput = document.getElementById('fileInput');
-const scanBtn = document.getElementById('scanBtn');
-const overlay = document.getElementById('overlay');
-const previewImg = document.getElementById('previewImg');
-const statusRow = document.getElementById('statusRow');
-const fName = document.getElementById('fName');
-const fKcal = document.getElementById('fKcal');
-const fPortion = document.getElementById('fPortion');
-const fNote = document.getElementById('fNote');
-const formError = document.getElementById('formError');
-const saveBtn = document.getElementById('saveBtn');
-const cancelBtn = document.getElementById('cancelBtn');
-const goalInput = document.getElementById('goalInput');
-
-scanBtn.addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = async () => {
-    currentImageData = reader.result;
-    previewImg.src = currentImageData;
-    fName.value = '';
-    fKcal.value = '';
-    fPortion.value = '';
-    fNote.value = '';
-    formError.style.display = 'none';
-    overlay.classList.add('open');
-    statusRow.style.display = 'flex';
-    saveBtn.disabled = true;
-    try {
-      await estimateCalories(currentImageData);
-    } catch(err) {
-      fNote.value = 'Automatische Schätzung nicht möglich — bitte manuell eintragen.';
-    } finally {
-      statusRow.style.display = 'none';
-      saveBtn.disabled = false;
-    }
-  };
-  reader.readAsDataURL(file);
-  fileInput.value = '';
-});
-
-async function estimateCalories(dataUrl) {
-  const base64 = dataUrl.split(',')[1];
-  const mediaType = dataUrl.substring(5, dataUrl.indexOf(';'));
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1000,
-      messages: [{
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-          { type: "text", text: "Du siehst ein Foto einer Mahlzeit. Schätze die Kalorien. Antworte NUR mit JSON, kein Markdown, kein Preamble, im Format: {\"name\": \"kurzer Gerichtname auf Deutsch\", \"portion\": \"geschätzte Portionsgröße, z.B. '1 Teller' oder '350g'\", \"calories\": ZAHL, \"note\": \"ein kurzer Satz auf Deutsch zur Einschätzung, z.B. welche Zutaten erkannt wurden und warum die Schätzung unsicher sein könnte\"}" }
-        ]
-      }]
-    })
-  });
-  const data = await response.json();
-  const text = data.content.map(b => b.text || "").join("");
-  const clean = text.replace(/```json|```/g, "").trim();
-  const parsed = JSON.parse(clean);
-
-  fName.value = parsed.name || '';
-  fKcal.value = Math.round(parsed.calories) || '';
-  fPortion.value = parsed.portion || '';
-  fNote.value = parsed.note || '';
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch(e){ return {}; }
 }
+function saveStore(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); }
+function entriesForDay(day){ return store[day] || []; }
 
-cancelBtn.addEventListener('click', () => {
-  overlay.classList.remove('open');
-  currentImageData = null;
-});
-
-saveBtn.addEventListener('click', () => {
-  const name = fName.value.trim();
-  const kcal = Number(fKcal.value);
-  if(!name || !kcal || kcal <= 0){
-    formError.style.display = 'block';
-    return;
-  }
-  formError.style.display = 'none';
-  entries.push({
-    name,
-    kcal,
-    portion: fPortion.value.trim(),
-    image: currentImageData
-  });
-  overlay.classList.remove('open');
-  currentImageData = null;
+const goalInput = document.getElementById('goalInput');
+goalInput.value = localStorage.getItem(GOAL_KEY) || 2000;
+goalInput.addEventListener('input', () => {
+  localStorage.setItem(GOAL_KEY, goalInput.value);
   render();
 });
 
-goalInput.addEventListener('input', render);
+document.getElementById('prevDay').addEventListener('click', () => {
+  const d = new Date(currentDate); d.setDate(d.getDate()-1);
+  currentDate = d.toISOString().slice(0,10); render();
+});
+document.getElementById('nextDay').addEventListener('click', () => {
+  const d = new Date(currentDate); d.setDate(d.getDate()+1);
+  currentDate = d.toISOString().slice(0,10); render();
+});
+
+function dayLabel(day){
+  if(day === todayStr()) return 'Heute';
+  const d = new Date(day);
+  const y = new Date(); y.setDate(y.getDate()-1);
+  if(day === y.toISOString().slice(0,10)) return 'Gestern';
+  return d.toLocaleDateString('de-DE', { weekday:'short', day:'2-digit', month:'2-digit' });
+}
 
 function render(){
   const goal = Number(goalInput.value) || 0;
+  const entries = entriesForDay(currentDate);
   const eaten = entries.reduce((s,e) => s + e.kcal, 0);
   document.getElementById('eatenVal').textContent = eaten;
   document.getElementById('leftVal').textContent = Math.max(goal - eaten, 0);
   const pct = goal > 0 ? Math.min((eaten/goal)*100, 100) : 0;
   document.getElementById('bar').style.width = pct.toFixed(0) + '%';
+  document.getElementById('dayLabel').textContent = dayLabel(currentDate);
 
   const log = document.getElementById('log');
   const empty = document.getElementById('emptyState');
@@ -429,20 +226,182 @@ function render(){
     const row = document.createElement('div');
     row.className = 'entry';
     row.innerHTML = `
-      <img src="${e.image || ''}" alt="">
       <div class="info">
-        <p class="name">${e.name}</p>
-        <p class="meta">${e.portion || ''}</p>
+        <p class="name">${escapeHtml(e.name)}</p>
+        <p class="meta">${e.grams}g</p>
       </div>
       <span class="kcal">${e.kcal} kcal</span>
     `;
     const btn = document.createElement('button');
+    btn.className = 'remove';
     btn.textContent = '✕';
     btn.setAttribute('aria-label', 'Entfernen');
-    btn.addEventListener('click', () => { entries.splice(i,1); render(); });
+    btn.addEventListener('click', () => {
+      store[currentDate].splice(i,1);
+      saveStore(); render();
+    });
     row.appendChild(btn);
     log.appendChild(row);
   });
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+/* ---------- Detail / Save sheet ---------- */
+const detailOverlay = document.getElementById('detailOverlay');
+const dName = document.getElementById('dName');
+const dKcalPer100 = document.getElementById('dKcalPer100');
+const dGrams = document.getElementById('dGrams');
+const dKcalResult = document.getElementById('dKcalResult');
+const detailError = document.getElementById('detailError');
+const detailLoading = document.getElementById('detailLoading');
+
+function updateResult(){
+  const per100 = Number(dKcalPer100.value);
+  const grams = Number(dGrams.value);
+  dKcalResult.value = (per100 > 0 && grams > 0) ? Math.round(per100 * grams / 100) + ' kcal' : '—';
+}
+dKcalPer100.addEventListener('input', updateResult);
+dGrams.addEventListener('input', updateResult);
+
+function openDetail(product){
+  detailError.style.display = 'none';
+  dName.value = product.name || '';
+  dKcalPer100.value = product.kcalPer100 || '';
+  dGrams.value = product.grams || 100;
+  updateResult();
+  detailLoading.style.display = product.loading ? 'flex' : 'none';
+  detailOverlay.classList.add('open');
+}
+
+document.getElementById('closeDetail').addEventListener('click', () => detailOverlay.classList.remove('open'));
+document.getElementById('detailCancel').addEventListener('click', () => detailOverlay.classList.remove('open'));
+document.getElementById('detailSave').addEventListener('click', () => {
+  const name = dName.value.trim();
+  const per100 = Number(dKcalPer100.value);
+  const grams = Number(dGrams.value);
+  if(!name || !per100 || per100 <= 0 || !grams || grams <= 0){
+    detailError.style.display = 'block';
+    return;
+  }
+  const kcal = Math.round(per100 * grams / 100);
+  if(!store[currentDate]) store[currentDate] = [];
+  store[currentDate].push({ name, grams, kcal });
+  saveStore();
+  detailOverlay.classList.remove('open');
+  render();
+});
+
+/* ---------- Search (Open Food Facts) ---------- */
+const searchOverlay = document.getElementById('searchOverlay');
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+
+document.getElementById('searchOpenBtn').addEventListener('click', () => {
+  searchInput.value = '';
+  searchResults.innerHTML = '';
+  searchOverlay.classList.add('open');
+  setTimeout(() => searchInput.focus(), 200);
+});
+document.getElementById('closeSearch').addEventListener('click', () => searchOverlay.classList.remove('open'));
+document.getElementById('doSearch').addEventListener('click', runSearch);
+searchInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') runSearch(); });
+
+async function runSearch(){
+  const q = searchInput.value.trim();
+  if(!q) return;
+  searchResults.innerHTML = '<p class="no-results">Suche läuft…</p>';
+  try{
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=15&fields=product_name,nutriments,image_small_url`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const products = (data.products || []).filter(p => p.product_name && p.nutriments && p.nutriments['energy-kcal_100g']);
+    if(products.length === 0){
+      searchResults.innerHTML = '<p class="no-results">Nichts gefunden. Versuch einen anderen Begriff oder trag es manuell ein.</p>';
+      return;
+    }
+    searchResults.innerHTML = '';
+    products.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'result-item';
+      const kcal100 = Math.round(p.nutriments['energy-kcal_100g']);
+      btn.innerHTML = `
+        <img src="${p.image_small_url || ''}" alt="">
+        <div>
+          <p class="r-name">${escapeHtml(p.product_name)}</p>
+          <p class="r-kcal">${kcal100} kcal / 100g</p>
+        </div>
+      `;
+      btn.addEventListener('click', () => {
+        searchOverlay.classList.remove('open');
+        openDetail({ name: p.product_name, kcalPer100: kcal100, grams: 100 });
+      });
+      searchResults.appendChild(btn);
+    });
+  }catch(err){
+    searchResults.innerHTML = '<p class="no-results">Suche fehlgeschlagen — Internetverbindung prüfen.</p>';
+  }
+}
+
+/* ---------- Barcode scan ---------- */
+const scanOverlay = document.getElementById('scanOverlay');
+const scanStatus = document.getElementById('scanStatus');
+
+document.getElementById('scanOpenBtn').addEventListener('click', startScan);
+document.getElementById('closeScan').addEventListener('click', stopScan);
+
+function startScan(){
+  scanStatus.textContent = 'Kamera wird gestartet…';
+  scanOverlay.classList.add('open');
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 240, height: 140 } },
+    onScanSuccess,
+    () => {}
+  ).catch(() => {
+    scanStatus.textContent = 'Kamera nicht verfügbar. Bitte Kamerazugriff erlauben.';
+  });
+}
+
+function stopScan(){
+  scanOverlay.classList.remove('open');
+  if(html5QrCode){
+    html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+  }
+}
+
+async function onScanSuccess(decodedText){
+  if(html5QrCode){
+    html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+  }
+  scanOverlay.classList.remove('open');
+  openDetail({ name: 'Wird geladen…', kcalPer100: '', grams: 100, loading: true });
+  try{
+    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${decodedText}.json`);
+    const data = await res.json();
+    if(data.status === 1 && data.product){
+      const p = data.product;
+      const kcal100 = Math.round(p.nutriments?.['energy-kcal_100g'] || 0);
+      openDetail({
+        name: p.product_name || 'Unbekanntes Produkt',
+        kcalPer100: kcal100 || '',
+        grams: 100
+      });
+    } else {
+      openDetail({ name: '', kcalPer100: '', grams: 100 });
+      detailError.textContent = 'Produkt nicht in der Datenbank gefunden — bitte manuell eintragen.';
+      detailError.style.display = 'block';
+    }
+  }catch(err){
+    openDetail({ name: '', kcalPer100: '', grams: 100 });
+    detailError.textContent = 'Abruf fehlgeschlagen — bitte manuell eintragen.';
+    detailError.style.display = 'block';
+  }
 }
 
 render();
